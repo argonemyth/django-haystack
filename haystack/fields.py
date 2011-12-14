@@ -159,6 +159,10 @@ class CharField(SearchField):
         return unicode(value)
 
 
+class LocationField(CharField):
+    field_type = 'location'
+
+
 class NgramField(CharField):
     field_type = 'ngram'
     

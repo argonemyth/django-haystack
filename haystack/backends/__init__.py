@@ -7,7 +7,7 @@ from django.db.models.base import ModelBase
 from django.utils import tree
 from django.utils.encoding import force_unicode
 from haystack.constants import DJANGO_CT, VALID_FILTERS, FILTER_SEPARATOR, DEFAULT_ALIAS
-from haystack.exceptions import MoreLikeThisError, FacetingError
+from haystack.exceptions import MoreLikeThisError, FacetingError, SpatialError
 from haystack.models import SearchResult
 from haystack.utils.loading import UnifiedIndex
 
@@ -104,7 +104,7 @@ class BaseSearchBackend(object):
     @log_query
     def search(self, query_string, sort_by=None, start_offset=0, end_offset=None,
                fields='', highlight=False, facets=None, date_facets=None, query_facets=None,
-               narrow_queries=None, spelling_query=None,
+               narrow_queries=None, spelling_query=None, spatial_query=None,
                limit_to_registered_models=None, result_class=None, **kwargs):
         """
         Takes a query to search on and returns dictionary.
@@ -283,12 +283,14 @@ class BaseSearchQuery(object):
     def __init__(self, using=DEFAULT_ALIAS):
         self.query_filter = SearchNode()
         self.order_by = []
+        self.order_by_distance = {}
         self.models = set()
         self.boost = {}
         self.start_offset = 0
         self.end_offset = None
         self.highlight = False
         self.facets = set()
+        self.spatial_query = {}
         self.date_facets = {}
         self.query_facets = []
         self.narrow_queries = set()
@@ -338,6 +340,9 @@ class BaseSearchQuery(object):
 
         if self.order_by:
             kwargs['sort_by'] = self.order_by
+
+        if self.order_by_distance:
+            kwargs['sort_by_distance'] = self.order_by_distance
 
         if self.end_offset is not None:
             kwargs['end_offset'] = self.end_offset
@@ -603,6 +608,10 @@ class BaseSearchQuery(object):
         """Orders the search result by a field."""
         self.order_by.append(field)
 
+    def add_order_by_distance(self, **kwargs):
+        """Orders the search result by distance from point."""
+        raise NotImplementedError("Subclasses must provide a way to add order by distance in the 'add_order_by_distance' method.")
+
     def clear_order_by(self):
         """
         Clears out all ordering that has been already added, reverting the
@@ -662,6 +671,10 @@ class BaseSearchQuery(object):
     def add_highlight(self):
         """Adds highlighting to the search results."""
         self.highlight = True
+
+    def add_spatial(self, **kwargs):
+        """Adds spatial query parameters to search query"""
+        self.spatial_query.update(kwargs)
 
     def add_field_facet(self, field):
         """Adds a regular facet on a field."""
@@ -759,12 +772,14 @@ class BaseSearchQuery(object):
         clone = klass(using=using)
         clone.query_filter = deepcopy(self.query_filter)
         clone.order_by = self.order_by[:]
+        clone.order_by_distance = self.order_by_distance.copy()
         clone.models = self.models.copy()
         clone.boost = self.boost.copy()
         clone.highlight = self.highlight
         clone.facets = self.facets.copy()
         clone.date_facets = self.date_facets.copy()
         clone.query_facets = self.query_facets[:]
+        clone.spatial_query = self.spatial_query.copy()
         clone.narrow_queries = self.narrow_queries.copy()
         clone.start_offset = self.start_offset
         clone.end_offset = self.end_offset

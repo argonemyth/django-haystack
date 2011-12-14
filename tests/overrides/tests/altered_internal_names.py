@@ -77,5 +77,4 @@ class AlteredInternalNamesTestCase(TestCase):
         schema_xml = command.build_template(using=DEFAULT_ALIAS)
         self.assertTrue('<uniqueKey>my_id</uniqueKey>' in schema_xml)
         self.assertTrue('<field name="my_id" type="string" indexed="true" stored="true" multiValued="false" required="true"/>' in schema_xml)
-        self.assertTrue('<field name="my_django_ct" type="string" indexed="true" stored="true" multiValued="false" />' in schema_xml)
-        self.assertTrue('<field name="my_django_id" type="string" indexed="true" stored="true" multiValued="false" />' in schema_xml)
+        self.assertTrue('<field name="my_django_ct" type="string" indexed="true" stored="true" multiValued="false"/>' in schema_xml)

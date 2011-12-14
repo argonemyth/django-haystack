@@ -4,7 +4,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db.models.loading import get_model
 from haystack.backends import BaseEngine, BaseSearchBackend, BaseSearchQuery, log_query, EmptyResults
 from haystack.constants import ID, DJANGO_CT, DJANGO_ID
-from haystack.exceptions import MissingDependency, MoreLikeThisError
+from haystack.exceptions import MissingDependency, MoreLikeThisError, SpatialError
 from haystack.models import SearchResult
 from haystack.utils import get_identifier
 try:
@@ -107,7 +107,8 @@ class SolrSearchBackend(BaseSearchBackend):
     def search(self, query_string, sort_by=None, start_offset=0, end_offset=None,
                fields='', highlight=False, facets=None, date_facets=None, query_facets=None,
                narrow_queries=None, spelling_query=None,
-               limit_to_registered_models=None, result_class=None, **kwargs):
+               limit_to_registered_models=None, result_class=None,
+               spatial_query=None, sort_by_distance=None, **kwargs):
         if len(query_string) == 0:
             return {
                 'results': [],
@@ -126,6 +127,13 @@ class SolrSearchBackend(BaseSearchBackend):
 
         if sort_by is not None:
             kwargs['sort'] = sort_by
+
+        if sort_by_distance is not None:
+            try:
+                kwargs['sfield'] = sort_by_distance['sfield']
+                kwargs['pt'] = '%(lat)s,%(long)s' % sort_by_distance
+            except KeyError:
+                raise SpatialError("The given spatial sort didn't contain all required values (lat, long and sfield): %s" % ', '.join(sort_by_distance.keys()))
 
         if start_offset is not None:
             kwargs['start'] = start_offset
@@ -185,6 +193,13 @@ class SolrSearchBackend(BaseSearchBackend):
 
         if narrow_queries is not None:
             kwargs['fq'] = list(narrow_queries)
+
+        if spatial_query is not None:
+            try:
+                query_template = '{!%(filter)s pt=%(lat)s,%(long)s sfield=%(sfield)s d=%(distance)s}'
+                kwargs.setdefault('fq', []).append(query_template % spatial_query)
+            except KeyError:
+                raise SpatialError("The given spatial query didn't contain all required values (lat, long, sfield and distance): %s" % ', '.join(spatial_query.keys()))
 
         try:
             raw_results = self.conn.search(query_string, **kwargs)
@@ -353,6 +368,8 @@ class SolrSearchBackend(BaseSearchBackend):
                 field_data['type'] = 'ngram'
             elif field_class.field_type == 'edge_ngram':
                 field_data['type'] = 'edge_ngram'
+            elif field_class.field_type == 'location':
+                field_data['type'] = 'location'
 
             if field_class.is_multivalued:
                 field_data['multi_valued'] = 'true'
@@ -416,6 +433,25 @@ class SolrSearchQuery(BaseSearchQuery):
     def matching_all_fragment(self):
         return '*:*'
 
+    def add_spatial(self, lat, lon, sfield, distance, filter='bbox'):
+        """Adds spatial query parameters to search query"""
+        params = {
+            'lat': lat,
+            'long': long,
+            'sfield': sfield,
+            'distance': distance,
+        }
+        self.spatial_query.update(kwargs)
+
+    def add_order_by_distance(self, lat, long, sfield):
+        """Orders the search result by distance from point."""
+        kwargs = {
+            'lat': lat,
+            'long': long,
+            'sfield': sfield,
+        }
+        self.order_by_distance.update(kwargs)
+
     def build_query_fragment(self, field, filter_type, value):
         from haystack import connections
         result = ''
@@ -469,8 +505,17 @@ class SolrSearchQuery(BaseSearchQuery):
             'result_class': self.result_class,
         }
 
+        order_by_list = None
+
+        if self.order_by_distance:
+            if order_by_list is None:
+                order_by_list = []
+            order_by_list.append('geodist() asc')
+            kwargs['sort_by_distance'] = self.order_by_distance
+
         if self.order_by:
-            order_by_list = []
+            if order_by_list is None:
+                order_by_list = []
 
             for order_by in self.order_by:
                 if order_by.startswith('-'):
@@ -503,6 +548,9 @@ class SolrSearchQuery(BaseSearchQuery):
 
         if spelling_query:
             search_kwargs['spelling_query'] = spelling_query
+
+        if self.spatial_query:
+            kwargs['spatial_query'] = self.spatial_query
 
         results = self.backend.search(final_query, **search_kwargs)
         self._results = results.get('results', [])

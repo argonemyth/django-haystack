@@ -12,7 +12,8 @@ from haystack import indexes
 from haystack.models import SearchResult
 from haystack.query import SearchQuerySet, RelatedSearchQuerySet, SQ
 from haystack.utils.loading import UnifiedIndex
-from core.models import MockModel, AnotherMockModel, AFourthMockModel
+from core.models import (MockModel, AnotherMockModel,
+                         AFourthMockModel, ASixthMockModel)
 from core.tests.mocks import MockSearchResult
 
 test_pickling = True
@@ -144,6 +145,17 @@ class SolrAutocompleteMockModelSearchIndex(indexes.SearchIndex, indexes.Indexabl
 
     def get_model(self):
         return MockModel
+
+
+class SolrSpatialSearchIndex(indexes.SearchIndex, indexes.Indexable):
+    text = indexes.CharField(model_attr='name', document=True)
+    location = indexes.LocationField()
+
+    def prepare_location(self, obj):
+        return "%s,%s" % (obj.lat, obj.lon)
+
+    def get_model(self):
+        return ASixthMockModel
 
 
 class SolrSearchBackendTestCase(TestCase):
@@ -1229,3 +1241,27 @@ class LiveSolrContentExtractionTestCase(TestCase):
         self.assertEqual(data['metadata']['Content-Type'], [u'application/pdf'])
         self.assertTrue(any(i for i in data['metadata']['Keywords'] if 'SolrCell' in i))
 
+
+class LiveSolrSpatialTestCase(TestCase):
+    def setUp(self):
+        super(LiveSolrSpatialTestCase, self).setUp()
+        self.sb = connections['default'].get_backend()
+        self.sssi = SolrSpatialSearchIndex()
+        self.p1 = ASixthMockModel.objects.create(name='The White House', lat=38.898748, lon=-77.037684)
+        self.p2 = ASixthMockModel.objects.create(name='The broadway', lat=40.755932, lon=-73.986508)
+        self.p3 = ASixthMockModel.objects.create(name='Hollywood', lat=34.101509, lon=-118.32691)
+        self.p4 = ASixthMockModel.objects.create(name='San Francisco', lat=37.74533, lon=-122.420082)
+        self.p5 = ASixthMockModel.objects.create(name='Florida', lat=24.553922, lon=-81.803260)
+  
+    def test_spatial(self):
+        self.sb.update(self.sssi, [self.p1, self.p2, self.p3, self.p4, self.p5])
+
+        results = SearchQuerySet().filter(name='Florida')
+
+        self.assertEqual([result.id for result in results], ['core.afourthmockmodel.1'])
+        # 
+        # self.assertTrue("haystack" in data['contents'])
+        # self.assertEqual(data['metadata']['Content-Type'], [u'application/pdf'])
+        # self.assertTrue(any(i for i in data['metadata']['Keywords'] if 'SolrCell' in i))
+        # 
+        # 

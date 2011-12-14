@@ -313,6 +313,12 @@ class SearchQuerySet(object):
 
         return clone
 
+    def order_by_distance(self, **kwargs):
+        """Alters the order in which the results should appear."""
+        clone = self._clone()
+        clone.query.add_order_by_distance(**kwargs)
+        return clone
+
     def highlight(self):
         """Adds highlighting to the results."""
         clone = self._clone()
@@ -352,6 +358,12 @@ class SearchQuerySet(object):
         """Adds faceting to a query for the provided field."""
         clone = self._clone()
         clone.query.add_field_facet(field)
+        return clone
+
+    def spatial(self, **kwargs):
+        """Adds spatial search to the query"""
+        clone = self._clone()
+        clone.query.add_spatial(**kwargs)
         return clone
 
     def date_facet(self, field, start_date, end_date, gap_by, gap_amount=1):

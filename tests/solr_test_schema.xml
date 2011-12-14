@@ -29,6 +29,7 @@
     <fieldType name="slong" class="solr.SortableLongField" sortMissingLast="true" omitNorms="true"/>
     <fieldType name="sfloat" class="solr.SortableFloatField" sortMissingLast="true" omitNorms="true"/>
     <fieldType name="sdouble" class="solr.SortableDoubleField" sortMissingLast="true" omitNorms="true"/>
+    <fieldType name="double" class="solr.TrieDoubleField" precisionStep="0" positionIncrementGap="0" omitNorms="true"/>
 
     <fieldType name="date" class="solr.DateField" sortMissingLast="true" omitNorms="true"/>
 
@@ -60,7 +61,7 @@
         <tokenizer class="solr.WhitespaceTokenizerFactory"/>
       </analyzer>
     </fieldType>
-    
+
     <fieldType name="ngram" class="solr.TextField" >
       <analyzer type="index">
         <tokenizer class="solr.KeywordTokenizerFactory"/>
@@ -72,7 +73,7 @@
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>
     </fieldType>
-    
+
     <fieldType name="edge_ngram" class="solr.TextField" positionIncrementGap="1">
       <analyzer type="index">
         <tokenizer class="solr.WhitespaceTokenizerFactory" />
@@ -86,9 +87,10 @@
         <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
       </analyzer>
     </fieldType>
+	<fieldType name="location" class="solr.LatLonType" subFieldSuffix="_location"/>
   </types>
 
-  <fields>   
+  <fields>
     <!-- general -->
     <field name="id"      type="string"   indexed="true"  stored="true"  multiValued="false" required="true"/>
     <field name="type"    type="string"   indexed="true"  stored="true"  multiValued="false" /> 
@@ -122,6 +124,8 @@
     <field name="created"    type="date"   indexed="true"  stored="true"  multiValued="false" /> 
     <field name="tags"    type="text"   indexed="true"  stored="true"  multiValued="true" /> 
     <field name="sites"    type="sint"   indexed="true"  stored="true"  multiValued="true" /> 
+	<dynamicField name="*_location" type="double" indexed="true" stored="false" multiValued="true"/>
+
   </fields>
 
   <!-- field to use to determine and enforce document uniqueness. -->

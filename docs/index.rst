@@ -61,6 +61,7 @@ you may want to include in your application.
    boost
    multiple_index
    rich_content_extraction
+   spatial
 
 
 Reference
