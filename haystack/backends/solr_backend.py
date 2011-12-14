@@ -435,7 +435,7 @@ class SolrSearchQuery(BaseSearchQuery):
 
     def add_spatial(self, lat, lon, sfield, distance, filter='bbox'):
         """Adds spatial query parameters to search query"""
-        params = {
+        kwargs = {
             'lat': lat,
             'long': long,
             'sfield': sfield,
