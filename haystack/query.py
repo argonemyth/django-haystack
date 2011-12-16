@@ -360,10 +360,25 @@ class SearchQuerySet(object):
         clone.query.add_field_facet(field)
         return clone
 
-    def spatial(self, **kwargs):
-        """Adds spatial search to the query"""
+    def within(self, field, point_1, point_2):
+        """Spatial: Adds a bounding box search to the query."""
         clone = self._clone()
-        clone.query.add_spatial(**kwargs)
+        clone.query.add_within(field, point_1, point_2)
+        return clone
+
+    def dwithin(self, field, point, distance):
+        """Spatial: Adds a distance-based search to the query."""
+        clone = self._clone()
+        clone.query.add_dwithin(field, point, distance)
+        return clone
+
+    def distance(self, field, point):
+        """
+        Spatial: Denotes results must have distance measurements from the
+        provided point.
+        """
+        clone = self._clone()
+        clone.query.add_distance(field, point)
         return clone
 
     def date_facet(self, field, start_date, end_date, gap_by, gap_amount=1):

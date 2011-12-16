@@ -32,6 +32,7 @@
     <fieldType name="double" class="solr.TrieDoubleField" precisionStep="0" positionIncrementGap="0" omitNorms="true"/>
 
     <fieldType name="date" class="solr.DateField" sortMissingLast="true" omitNorms="true"/>
+    <fieldType name="location" class="solr.LatLonType" subFieldSuffix="_location"/>
 
     <fieldType name="text" class="solr.TextField" positionIncrementGap="100">
       <analyzer type="index">
@@ -87,20 +88,19 @@
         <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
       </analyzer>
     </fieldType>
-	<fieldType name="location" class="solr.LatLonType" subFieldSuffix="_location"/>
   </types>
 
   <fields>
     <!-- general -->
     <field name="id"      type="string"   indexed="true"  stored="true"  multiValued="false" required="true"/>
-    <field name="type"    type="string"   indexed="true"  stored="true"  multiValued="false" /> 
-    <field name="name"    type="string"   indexed="true"  stored="true"  multiValued="false" /> 
-    <field name="name_exact"    type="string"   indexed="true"  stored="true"  multiValued="false" /> 
-    <field name="author"    type="string"   indexed="true"  stored="true"  multiValued="false" omitNorms="false" /> 
+    <field name="type"    type="string"   indexed="true"  stored="true"  multiValued="false" />
+    <field name="name"    type="string"   indexed="true"  stored="true"  multiValued="false" />
+    <field name="name_exact"    type="string"   indexed="true"  stored="true"  multiValued="false" />
+    <field name="author"    type="string"   indexed="true"  stored="true"  multiValued="false" omitNorms="false" />
     <field name="editor"    type="string"   indexed="true"  stored="true"  multiValued="false" omitNorms="false" />
     <field name="text"    type="text"     indexed="true"  stored="true"  multiValued="false" />
-    <field name="pub_date"    type="date"     indexed="true"  stored="true"  multiValued="false" /> 
-    <field name="month"    type="string"   indexed="false"  stored="true"  multiValued="false" /> 
+    <field name="pub_date"    type="date"     indexed="true"  stored="true"  multiValued="false" />
+    <field name="month"    type="string"   indexed="false"  stored="true"  multiValued="false" />
     <field name="text_auto"    type="edge_ngram"     indexed="true"  stored="true"  multiValued="false" />
     <field name="name_auto"    type="edge_ngram"     indexed="true"  stored="true"  multiValued="false" />
 
@@ -114,17 +114,17 @@
     <dynamicField name="*_f"  type="sfloat"  indexed="true"  stored="true"/>
     <dynamicField name="*_d"  type="sdouble" indexed="true"  stored="true"/>
     <dynamicField name="*_dt" type="date"    indexed="true"  stored="true"/>
-    
+    <dynamicField name="*_location" type="double" indexed="true" stored="false" multiValued="true"/>
+
     <field name="django_ct" type="string"   indexed="true"  stored="true"  multiValued="false" />
     <field name="django_id" type="string"   indexed="true"  stored="true"  multiValued="false" />
-    <field name="is_active"    type="boolean"   indexed="true"  stored="true"  multiValued="false" /> 
-    <field name="post_count"    type="sint"   indexed="true"  stored="true"  multiValued="false" /> 
-    <field name="average_rating"    type="sfloat"   indexed="true"  stored="true"  multiValued="false" /> 
-    <field name="price"    type="string"   indexed="true"  stored="true"  multiValued="false" /> 
-    <field name="created"    type="date"   indexed="true"  stored="true"  multiValued="false" /> 
-    <field name="tags"    type="text"   indexed="true"  stored="true"  multiValued="true" /> 
-    <field name="sites"    type="sint"   indexed="true"  stored="true"  multiValued="true" /> 
-	<dynamicField name="*_location" type="double" indexed="true" stored="false" multiValued="true"/>
+    <field name="is_active"    type="boolean"   indexed="true"  stored="true"  multiValued="false" />
+    <field name="post_count"    type="sint"   indexed="true"  stored="true"  multiValued="false" />
+    <field name="average_rating"    type="sfloat"   indexed="true"  stored="true"  multiValued="false" />
+    <field name="price"    type="string"   indexed="true"  stored="true"  multiValued="false" />
+    <field name="created"    type="date"   indexed="true"  stored="true"  multiValued="false" />
+    <field name="tags"    type="text"   indexed="true"  stored="true"  multiValued="true" />
+    <field name="sites"    type="sint"   indexed="true"  stored="true"  multiValued="true" />
 
   </fields>
 

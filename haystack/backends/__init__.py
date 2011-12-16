@@ -7,8 +7,9 @@ from django.db.models.base import ModelBase
 from django.utils import tree
 from django.utils.encoding import force_unicode
 from haystack.constants import DJANGO_CT, VALID_FILTERS, FILTER_SEPARATOR, DEFAULT_ALIAS
-from haystack.exceptions import MoreLikeThisError, FacetingError, SpatialError
+from haystack.exceptions import MoreLikeThisError, FacetingError
 from haystack.models import SearchResult
+from haystack.utils.geo import ensure_point, ensure_distance
 from haystack.utils.loading import UnifiedIndex
 
 
@@ -70,6 +71,7 @@ class BaseSearchBackend(object):
         self.include_spelling = connection_options.get('INCLUDE_SPELLING', False)
         self.batch_size = connection_options.get('BATCH_SIZE', 1000)
         self.silently_fail = connection_options.get('SILENTLY_FAIL', True)
+        self.distance_available = connection_options.get('DISTANCE_AVAILABLE', False)
 
     def update(self, index, iterable):
         """
@@ -104,7 +106,8 @@ class BaseSearchBackend(object):
     @log_query
     def search(self, query_string, sort_by=None, start_offset=0, end_offset=None,
                fields='', highlight=False, facets=None, date_facets=None, query_facets=None,
-               narrow_queries=None, spelling_query=None, spatial_query=None,
+               narrow_queries=None, spelling_query=None, within=None,
+               dwithin=None, distance_point=None,
                limit_to_registered_models=None, result_class=None, **kwargs):
         """
         Takes a query to search on and returns dictionary.
@@ -283,14 +286,12 @@ class BaseSearchQuery(object):
     def __init__(self, using=DEFAULT_ALIAS):
         self.query_filter = SearchNode()
         self.order_by = []
-        self.order_by_distance = {}
         self.models = set()
         self.boost = {}
         self.start_offset = 0
         self.end_offset = None
         self.highlight = False
         self.facets = set()
-        self.spatial_query = {}
         self.date_facets = {}
         self.query_facets = []
         self.narrow_queries = set()
@@ -299,6 +300,11 @@ class BaseSearchQuery(object):
         #: and django_id when using code which expects those to be included in
         #: the results
         self.fields = []
+        # Geospatial-related information
+        self.within = {}
+        self.dwithin = {}
+        self.distance_point = {}
+        # Internal.
         self._raw_query = None
         self._raw_query_params = {}
         self._more_like_this = False
@@ -367,6 +373,15 @@ class BaseSearchQuery(object):
 
         if self.boost:
             kwargs['boost'] = self.boost
+
+        if self.within:
+            kwargs['within'] = self.within
+
+        if self.dwithin:
+            kwargs['dwithin'] = self.dwithin
+
+        if self.distance_point:
+            kwargs['distance_point'] = self.distance_point
 
         if self.result_class:
             kwargs['result_class'] = self.result_class
@@ -619,6 +634,13 @@ class BaseSearchQuery(object):
         """
         self.order_by = []
 
+    def clear_order_by_distance(self):
+        """
+        Clears out all distance ordering that has been already added, reverting the
+        query to relevancy.
+        """
+        self.order_by_distance = []
+
     def add_model(self, model):
         """
         Restricts the query requiring matches in the given model.
@@ -672,9 +694,31 @@ class BaseSearchQuery(object):
         """Adds highlighting to the search results."""
         self.highlight = True
 
-    def add_spatial(self, **kwargs):
+    def add_within(self, field, point_1, point_2):
         """Adds spatial query parameters to search query"""
-        self.spatial_query.update(kwargs)
+        self.within = {
+            'field': field,
+            'point_1': ensure_point(point_1),
+            'point_2': ensure_point(point_2),
+        }
+
+    def add_dwithin(self, field, point, distance):
+        """Adds spatial query parameters to search query"""
+        self.dwithin = {
+            'field': field,
+            'point': ensure_point(point),
+            'distance': ensure_distance(distance),
+        }
+
+    def add_distance(self, field, point):
+        """
+        Denotes that results should include distance measurements from the
+        point passed in.
+        """
+        self.distance_point = {
+            'field': field,
+            'point': ensure_point(point),
+        }
 
     def add_field_facet(self, field):
         """Adds a regular facet on a field."""
@@ -772,18 +816,19 @@ class BaseSearchQuery(object):
         clone = klass(using=using)
         clone.query_filter = deepcopy(self.query_filter)
         clone.order_by = self.order_by[:]
-        clone.order_by_distance = self.order_by_distance.copy()
         clone.models = self.models.copy()
         clone.boost = self.boost.copy()
         clone.highlight = self.highlight
         clone.facets = self.facets.copy()
         clone.date_facets = self.date_facets.copy()
         clone.query_facets = self.query_facets[:]
-        clone.spatial_query = self.spatial_query.copy()
         clone.narrow_queries = self.narrow_queries.copy()
         clone.start_offset = self.start_offset
         clone.end_offset = self.end_offset
         clone.result_class = self.result_class
+        clone.within = self.within.copy()
+        clone.dwithin = self.dwithin.copy()
+        clone.distance_point = self.distance_point.copy()
         clone._raw_query = self._raw_query
         clone._raw_query_params = self._raw_query_params
         return clone

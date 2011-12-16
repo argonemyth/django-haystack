@@ -32,6 +32,7 @@
     <fieldType name="double" class="solr.TrieDoubleField" precisionStep="0" positionIncrementGap="0" omitNorms="true"/>
 
     <fieldType name="date" class="solr.DateField" sortMissingLast="true" omitNorms="true"/>
+    <fieldType name="location" class="solr.LatLonType" subFieldSuffix="_location"/>
 
     <fieldType name="text" class="solr.TextField" positionIncrementGap="100">
       <analyzer type="index">
@@ -87,7 +88,6 @@
         <filter class="solr.WordDelimiterFilterFactory" generateWordParts="1" generateNumberParts="1" catenateWords="0" catenateNumbers="0" catenateAll="0" splitOnCaseChange="1"/>
       </analyzer>
     </fieldType>
-	<fieldType name="location" class="solr.LatLonType" subFieldSuffix="_location"/>
   </types>
 
   <fields>
