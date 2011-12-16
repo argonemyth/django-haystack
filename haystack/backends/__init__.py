@@ -347,9 +347,6 @@ class BaseSearchQuery(object):
         if self.order_by:
             kwargs['sort_by'] = self.order_by
 
-        if self.order_by_distance:
-            kwargs['sort_by_distance'] = self.order_by_distance
-
         if self.end_offset is not None:
             kwargs['end_offset'] = self.end_offset
 
