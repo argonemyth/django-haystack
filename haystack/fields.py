@@ -2,7 +2,7 @@ import re
 from django.utils import datetime_safe
 from django.template import loader, Context
 from haystack.exceptions import SearchFieldError
-from haystack.utils.geo import ensure_point
+from haystack.utils.geo import ensure_point, Point
 
 
 class NOT_PROVIDED:
@@ -159,17 +159,38 @@ class CharField(SearchField):
         return unicode(value)
 
 
-class LocationField(CharField):
+class LocationField(SearchField):
     field_type = 'location'
 
     def prepare(self, obj):
-        return self.convert(super(LocationField, self).prepare(obj))
+        value = super(LocationField, self).prepare(obj)
+
+        if value is None:
+            return None
+
+        pnt = ensure_point(value)
+        pnt_lng, pnt_lat = pnt.get_coords()
+        return "%s,%s" % (pnt_lat, pnt_lng)
 
     def convert(self, value):
         if value is None:
             return None
 
-        return ensure_point(value)
+        if hasattr(value, 'geom_type'):
+            value = ensure_point(value)
+            return value
+
+        if isinstance(value, basestring):
+            lat, lng = value.split(',')
+        elif isinstance(value, (list, tuple)):
+            # GeoJSON-alike
+            lat, lng = value[1], value[0]
+        elif ininstance(value, dict):
+            lat = value.get('lat', 0)
+            lng = value.get('lon', 0)
+
+        value = Point(float(lng), float(lat))
+        return value
 
 
 class NgramField(CharField):

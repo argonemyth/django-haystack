@@ -8,7 +8,7 @@ from haystack.exceptions import NotHandled, SpatialError
 from haystack.utils.geo import Distance
 
 try:
-    from geopy import distance
+    import geopy
 except ImportError:
     geopy = None
 
@@ -107,6 +107,9 @@ class SearchResult(object):
             if geopy is None:
                 raise SpatialError("The backend doesn't have 'DISTANCE_AVAILABLE' enabled & the 'geopy' library could not be imported, so distance information is not available.")
 
+            if not self._point_of_origin:
+                raise SpatialError("The original point is not available.")
+
             if not hasattr(self, self._point_of_origin['field']):
                 raise SpatialError("The field '%s' was not included in search results, so the distance could not be calculated." % self._point_of_origin['field'])
 
@@ -114,7 +117,7 @@ class SearchResult(object):
             location_field = getattr(self, self._point_of_origin['field'])
             # Note this is reversed. Because Solr. QED.
             lf_lat, lf_lng = location_field.split(',')
-            self._distance = Distance(km=distance.distance((po_lat, po_lng), (lf_lat, lf_lng)).km)
+            self._distance = Distance(km=geopy.distance.distance((po_lat, po_lng), (lf_lat, lf_lng)).km)
 
         # We've either already calculated it or the backend returned it, so
         # let's use that.

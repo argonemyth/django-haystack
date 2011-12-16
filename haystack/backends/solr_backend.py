@@ -573,13 +573,13 @@ class SolrSearchQuery(BaseSearchQuery):
             search_kwargs['spelling_query'] = spelling_query
 
         if self.within:
-            kwargs['within'] = self.within
+            search_kwargs['within'] = self.within
 
         if self.dwithin:
-            kwargs['dwithin'] = self.dwithin
+            search_kwargs['dwithin'] = self.dwithin
 
         if self.distance_point:
-            kwargs['distance_point'] = self.distance_point
+            search_kwargs['distance_point'] = self.distance_point
 
         results = self.backend.search(final_query, **search_kwargs)
         self._results = results.get('results', [])
