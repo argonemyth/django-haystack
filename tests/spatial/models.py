@@ -19,8 +19,9 @@ class Checkin(models.Model):
         ordering = ['-created']
 
     # Again, with GeoDjango, this would be unnecessary.
-    def get_location(self, obj):
-        pnt = Point(obj.longitude, obj.latitude)
+    def get_location(self):
+        # Nothing special about this Point, but ensure that's we don't have to worry
+        # about import paths.
+        from haystack.utils.geo import Point
+        pnt = Point(self.longitude, self.latitude)
         return pnt
-        # pnt_lng, pnt_lat = pnt.get_coords()
-        #return "%s,%s" % (pnt_lat, pnt_lng)

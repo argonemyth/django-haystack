@@ -128,18 +128,18 @@ class SolrSearchBackend(BaseSearchBackend):
             kwargs['fl'] = fields
 
         if sort_by is not None:
-            if sort_by in ['distance', '-distance'] and distance_point:
+            if sort_by in ['distance asc', 'distance desc'] and distance_point:
                 # Do the geo-enabled sort.
                 lng, lat = distance_point['point'].get_coords()
                 kwargs['sfield'] = distance_point['field']
-                kwargs['pt'] = '%(lat)s,%(long)s' % (lat, lng)
+                kwargs['pt'] = '%s,%s' % (lat, lng)
 
-                if sort_by == 'distance':
+                if sort_by == 'distance asc':
                     kwargs['sort'] = 'geodist() asc'
                 else:
                     kwargs['sort'] = 'geodist() desc'
             else:
-                if sort_by in ['distance', '-distance']:
+                if sort_by.startswith('distance '):
                     warnings.warn("In order to sort by distance, you must call the '.distance(...)' method.")
 
                 # Regular sorting.
@@ -208,7 +208,11 @@ class SolrSearchBackend(BaseSearchBackend):
             kwargs.setdefault('fq', [])
             lng_1, lat_1 = within['point_1'].get_coords()
             lng_2, lat_2 = within['point_2'].get_coords()
-            bbox = '%s:[%s,%s TO %s,%s]' % (within['field'], lat_1, lng_1, lat_2, lng_2)
+            min_lat, max_lat = min(lat_1, lat_2), max(lat_1, lat_2)
+            min_lng, max_lng = min(lng_1, lng_2), max(lng_1, lng_2)
+            # Bounding boxes are min, min TO max, max. Solr's wiki was *NOT*
+            # very clear on this.
+            bbox = '%s:[%s,%s TO %s,%s]' % (within['field'], min_lat, min_lng, max_lat, max_lng)
             kwargs['fq'].append(bbox)
 
         if dwithin is not None:

@@ -1,7 +1,4 @@
 from haystack import indexes
-# Nothing special about this Point, but ensure that's we don't have to worry
-# about import paths.
-from haystack.utils.geo import Point
 from spatial.models import Checkin
 
 

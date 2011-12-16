@@ -8,9 +8,9 @@ from haystack.exceptions import NotHandled, SpatialError
 from haystack.utils.geo import Distance
 
 try:
-    import geopy
+    from geopy import distance as geopy_distance
 except ImportError:
-    geopy = None
+    geopy_distance = None
 
 
 # Not a Django model, but tightly tied to them and there doesn't seem to be a
@@ -104,7 +104,7 @@ class SearchResult(object):
             # it yet. Check if geopy is available to do it the "slow" way
             # (even though slow meant 100 distance calculations in 0.004 seconds
             # in my testing).
-            if geopy is None:
+            if geopy_distance is None:
                 raise SpatialError("The backend doesn't have 'DISTANCE_AVAILABLE' enabled & the 'geopy' library could not be imported, so distance information is not available.")
 
             if not self._point_of_origin:
@@ -115,9 +115,8 @@ class SearchResult(object):
 
             po_lng, po_lat = self._point_of_origin['point'].get_coords()
             location_field = getattr(self, self._point_of_origin['field'])
-            # Note this is reversed. Because Solr. QED.
-            lf_lat, lf_lng = location_field.split(',')
-            self._distance = Distance(km=geopy.distance.distance((po_lat, po_lng), (lf_lat, lf_lng)).km)
+            lf_lng, lf_lat  = location_field.get_coords()
+            self._distance = Distance(km=geopy_distance.distance((po_lat, po_lng), (lf_lat, lf_lng)).km)
 
         # We've either already calculated it or the backend returned it, so
         # let's use that.
