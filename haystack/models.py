@@ -115,6 +115,10 @@ class SearchResult(object):
 
             po_lng, po_lat = self._point_of_origin['point'].get_coords()
             location_field = getattr(self, self._point_of_origin['field'])
+
+            if location_field is None:
+                return None
+
             lf_lng, lf_lat  = location_field.get_coords()
             self._distance = Distance(km=geopy_distance.distance((po_lat, po_lng), (lf_lat, lf_lng)).km)
 
