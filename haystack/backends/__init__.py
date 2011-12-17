@@ -692,7 +692,7 @@ class BaseSearchQuery(object):
         self.highlight = True
 
     def add_within(self, field, point_1, point_2):
-        """Adds spatial query parameters to search query"""
+        """Adds bounding box parameters to search query."""
         self.within = {
             'field': field,
             'point_1': ensure_point(point_1),
@@ -700,7 +700,7 @@ class BaseSearchQuery(object):
         }
 
     def add_dwithin(self, field, point, distance):
-        """Adds spatial query parameters to search query"""
+        """Adds radius-based parameters to search query."""
         self.dwithin = {
             'field': field,
             'point': ensure_point(point),
