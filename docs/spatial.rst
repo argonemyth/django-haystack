@@ -258,7 +258,7 @@ Examples::
 within which to search. It's composed of a center point & a radius (in
 kilometers, though Haystack will use the ``D`` object's conversion utilities to
 get it there). It is slower than``within`` but very exact & can involve fewer
-calculation on your part.
+calculations on your part.
 
 Examples::
 
