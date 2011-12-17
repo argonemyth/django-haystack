@@ -8,7 +8,7 @@ from haystack.constants import ID, DJANGO_CT, DJANGO_ID
 from haystack.exceptions import MissingDependency, MoreLikeThisError
 from haystack.models import SearchResult
 from haystack.utils import get_identifier
-from haystack.utils.geo import Distance
+from haystack.utils.geo import Distance, generate_bounding_box
 try:
     from django.db.models.sql.query import get_proxied_model
 except ImportError:
@@ -120,6 +120,7 @@ class SolrSearchBackend(BaseSearchBackend):
         kwargs = {
             'fl': '* score',
         }
+        geo_sort = False
 
         if fields:
             if isinstance(fields, (list, set)):
@@ -133,6 +134,7 @@ class SolrSearchBackend(BaseSearchBackend):
                 lng, lat = distance_point['point'].get_coords()
                 kwargs['sfield'] = distance_point['field']
                 kwargs['pt'] = '%s,%s' % (lat, lng)
+                geo_sort = True
 
                 if sort_by == 'distance asc':
                     kwargs['sort'] = 'geodist() asc'
@@ -206,10 +208,7 @@ class SolrSearchBackend(BaseSearchBackend):
 
         if within is not None:
             kwargs.setdefault('fq', [])
-            lng_1, lat_1 = within['point_1'].get_coords()
-            lng_2, lat_2 = within['point_2'].get_coords()
-            min_lat, max_lat = min(lat_1, lat_2), max(lat_1, lat_2)
-            min_lng, max_lng = min(lng_1, lng_2), max(lng_1, lng_2)
+            ((min_lat, min_lng), (max_lat, max_lng)) = generate_bounding_box(within['point_1'], within['point_2'])
             # Bounding boxes are min, min TO max, max. Solr's wiki was *NOT*
             # very clear on this.
             bbox = '%s:[%s,%s TO %s,%s]' % (within['field'], min_lat, min_lng, max_lat, max_lng)
@@ -223,8 +222,14 @@ class SolrSearchBackend(BaseSearchBackend):
 
         # Check to see if the backend should try to include distances
         # (Solr 4.X+) in the results.
-        if self.distance_available:
-            kwargs['fl'] += ' _dist_:geodist()'
+        if self.distance_available and distance_point:
+            # In early testing, you can't just hand Solr 4.X a proper bounding box
+            # & request distances. To enable native distance would take calculating
+            # a center point & a radius off the user-provided box, which kinda
+            # sucks. We'll avoid it for now, since Solr 4.x's release will be some
+            # time yet.
+            # kwargs['fl'] += ' _dist_:geodist()'
+            pass
 
         try:
             raw_results = self.conn.search(query_string, **kwargs)

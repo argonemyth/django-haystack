@@ -59,3 +59,16 @@ def ensure_distance(dist):
 
     return dist
 
+
+def generate_bounding_box(point_1, point_2):
+    """
+    Takes two opposite corners of a bounding box (in any order) & generates
+    a two-tuple of the correct coordinates for the bounding box.
+
+    The two-tuple is in the form ``((min_lat, min_lng), (max_lat, max_lng))``.
+    """
+    lng_1, lat_1 = point_1.get_coords()
+    lng_2, lat_2 = point_2.get_coords()
+    min_lat, max_lat = min(lat_1, lat_2), max(lat_1, lat_2)
+    min_lng, max_lng = min(lng_1, lng_2), max(lng_1, lng_2)
+    return ((min_lat, min_lng), (max_lat, max_lng))

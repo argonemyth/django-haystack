@@ -14,8 +14,9 @@ HAYSTACK_CONNECTIONS = {
     'solr_native_distance': {
         # Solr 4.X+
         'ENGINE': 'haystack.backends.solr_backend.SolrEngine',
-        'URL': 'http://localhost:9002/solr/test_spatial',
-        'DISTANCE_AVAILABLE': True,
+        'URL': 'http://localhost:9002/solr/',
+        # See ``haystack/backends/solr_backend.py`` for details on why not.
+        # 'DISTANCE_AVAILABLE': True,
     },
     # 'elasticsearch': {
     #     # Elasticsearch
